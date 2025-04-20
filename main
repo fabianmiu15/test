@@ -1,0 +1,392 @@
+#include <iostream>
+#include <windows.h>
+#include <conio.h>
+#include <cstring>
+using namespace std;
+
+
+class Persoana /// Proiect 2
+{
+protected:
+    char* nume;
+    char* email;
+
+public:
+    Persoana()
+    {
+        nume = new char[strlen("Anonim") + 1];
+        strcpy(nume, "Anonim");
+
+        email = new char[strlen("anonim@email.com") + 1];
+        strcpy(email, "anonim@email.com");
+    }
+
+    Persoana(const char* nume, const char* email)
+    {
+        this->nume = new char[strlen(nume) + 1];
+        strcpy(this->nume, nume);
+
+        this->email = new char[strlen(email) + 1];
+        strcpy(this->email, email);
+    }
+
+    Persoana(const Persoana& p)
+    {
+        nume = new char[strlen(p.nume) + 1];
+        strcpy(nume, p.nume);
+
+        email = new char[strlen(p.email) + 1];
+        strcpy(email, p.email);
+    }
+
+    virtual ~Persoana() {
+        if (nume) delete[] nume;
+        if (email) delete[] email;
+    }
+
+    Persoana& operator=(const Persoana& p)
+    {
+        if (this != &p)
+        {
+            if (nume) delete[] nume;
+            if (email) delete[] email;
+
+            nume = new char[strlen(p.nume) + 1];
+            strcpy(nume, p.nume);
+
+            email = new char[strlen(p.email) + 1];
+            strcpy(email, p.email);
+        }
+        return *this;
+    }
+
+    friend ostream& operator<<(ostream& out, const Persoana& p)
+    {
+        out << "Nume: " << p.nume << "\nEmail: " << p.email << endl;
+        return out;
+    }
+
+    friend istream& operator>>(istream& in, Persoana& p)
+    {
+        char buffer[100];
+        cout << "Introdu numele: ";
+        if (in.peek() == '\n')
+            in.ignore();
+        in.getline(buffer, 100);
+
+        delete[] p.nume;
+
+        p.nume = new char[strlen(buffer) + 1];
+        strcpy(p.nume, buffer);
+
+        cout << "Introdu email-ul: ";
+        in.getline(buffer, 100);
+
+        delete[] p.email;
+        p.email = new char[strlen(buffer) + 1];
+        strcpy(p.email, buffer);
+
+        return in;
+    }
+
+    virtual void afiseazaProfil() const = 0; // Clasa abstracta
+};
+
+
+
+class Entitate
+{
+protected:
+    static int generatorID;
+    const int entitateID;
+
+public:
+    Entitate()
+        : entitateID(generatorID++)
+    {}
+
+    Entitate(const Entitate& other)
+        : entitateID(generatorID++)
+    {}
+
+    virtual ~Entitate() {}
+
+    Entitate& operator=(const Entitate&) = default;
+
+    int getEntitateID() const
+    {
+        return entitateID;
+    }
+
+    virtual void descrieEntitate() const = 0;
+
+    friend ostream& operator<<(ostream& out, const Entitate& e)
+    {
+        out << "Entitate ID: " << e.entitateID << endl;
+        return out;
+    }
+};
+int Entitate::generatorID = 9000;
+
+
+class Client : virtual public Persoana, public virtual Entitate
+{
+private:
+    const int clientID;
+    int puncteFidelitate;
+
+    static int generatorID; /// Generator de ID-uri pentru clienti
+    static int numarClienti; /// Contor pentru numarul de clienti
+    static Client *listaClienti; /// Lista statica de clienti
+
+public:
+    /// Constructorul fara parametri
+    Client()
+        : Persoana(), clientID(generatorID++), puncteFidelitate(0)
+    {}
+
+    /// Constructor cu parametri - nume si email
+    Client(const char* nume, const char* email)
+        : Persoana(nume, email), clientID(generatorID++), puncteFidelitate(0)
+    {}
+
+    /// Constructor cu parametri - nume, email si puncte fidelitate
+    Client(const char* nume, const char* email, int puncteFidelitate)
+        : Persoana(nume, email), clientID(generatorID++), puncteFidelitate(puncteFidelitate)
+    {}
+
+    /// Constructor cu parametri - doar nume, email implicit
+    Client(const char* nume)
+        : Persoana(nume, "client@example.com"), clientID(generatorID++), puncteFidelitate(0)
+    {}
+
+    /// Constructorul de copiere
+    Client(const Client& c)
+        : Persoana(c), clientID(c.clientID), puncteFidelitate(c.puncteFidelitate)
+    {}
+
+    /// Destructorul
+    ~Client()
+    {}
+
+    /// Operatorul de atribuire
+    Client& operator=(const Client& c)
+    {
+        if (this == &c)
+            return *this;
+
+        Persoana::operator=(c);
+        puncteFidelitate = c.puncteFidelitate;
+
+        return *this;
+    }
+
+
+    /// Operatorul >> (stream input)
+    friend istream& operator>>(istream& in, Client& c) /// Ne propunem citirea unui obiect de tip Client
+    {
+        char buffer[100];
+
+        cout << "Introdu numele clientului: ";
+        if (in.peek() == '\n') /// Se ignora caracterul newline ramas din citirea anterioara daca urmatorul caracter din stream este un newline
+            in.ignore();
+        in.getline(buffer, 100);
+
+        if (c.nume != nullptr)
+            delete[] c.nume;
+        c.nume = new char[strlen(buffer) + 1];
+        strcpy(c.nume, buffer);
+
+        cout << "Introdu e-mailul clientului: ";
+        in.getline(buffer, 100);
+
+        if (c.email != nullptr)
+            delete[] c.email;
+        c.email = new char[strlen(buffer) + 1];
+        strcpy(c.email, buffer);
+
+        return in; /// Permite ca operatorul >> sa fie folosit in lant
+    }
+
+    /// Operatorul << (stream output)
+    friend ostream& operator<<(ostream& out, const Client& c)
+    {
+        out << "Client ID: " << c.clientID << endl;
+        out << "Nume: " << c.nume << endl;
+        out << "Email: " << c.email << endl;
+        out << "Puncte de fidelitate: " << c.puncteFidelitate << endl;
+        return out;
+    }
+
+    /// Setters & Getters
+
+    // Getter pentru nume
+    const char* getNume() const /// Se returneaza un pointer la un sir de caractere constant
+    {
+        /// Metoda nu va modifica obiectul curent asupra caruia este apelata
+        return nume;
+    }
+
+    // Setter pentru nume
+    void setNume (char *numeNou)
+    {
+        if (this->nume != nullptr)
+            delete[] this->nume;
+
+        this->nume = new char[strlen(numeNou) + 1];
+        strcpy(this->nume, numeNou);
+    }
+
+    // Getter pentru email
+    const char *getEmail() const
+    {
+        return email;
+    }
+
+    // Setter pentru email
+    void setEmail (char *email)
+    {
+        if (this->email != nullptr)
+            delete[] this->email;
+
+        this->email = new char[strlen(email) + 1];
+        strcpy(this->email, email);
+    }
+
+    // Getter pentru numarRezervari
+    int getPuncteFidelitate() const
+    {
+        return puncteFidelitate;
+    }
+
+    // Getter pentru clientID
+    int getClientID() const
+    {
+        return this->clientID;
+    }
+
+    static int getNumarClienti()
+    {
+        return numarClienti;
+    }
+
+    static Client* getListaClienti()
+    {
+        return listaClienti;
+    }
+
+    static Client* getClientDupaID (int clientID)
+    {
+        for (int i = 0; i < numarClienti; i++)
+            if (listaClienti[i].clientID == clientID)
+                return &listaClienti[i];
+        return nullptr;
+    }
+
+
+    /// Metoda din clasa abstracta Persoana
+    void afiseazaProfil() const override
+    {
+        cout << "Client [" << clientID << "] - " << getNume()
+             << " <" << getEmail() << ">, "
+             << puncteFidelitate << " puncte de fidelitate." << endl;
+    }
+
+
+    /// Metode statice
+
+    static void adaugaClientInLista (const Client& c)
+    {
+        listaClienti[numarClienti++] = c;
+    }
+
+    static void afiseazaTotiClientii()
+    {
+        for (int i = 0; i < numarClienti; i++)
+            cout << listaClienti[i] << endl;
+    }
+
+    static void afiseazaClientDupaID(int clientID)
+    {
+        for (int i = 0; i < numarClienti; i++)
+            if (listaClienti[i].clientID == clientID)
+            {
+                cout << listaClienti[i] << endl;
+                return;
+            }
+        cout << "Nu am gasit niciun client cu ID-ul " << clientID << endl;
+    }
+
+    static void stergeClientDupaID(int clientID)
+    {
+        if (numarClienti == 0)
+        {
+            cout << "Nu exista clienti in lista" << endl;
+            return;
+        }
+
+        bool startDelete = false;
+        if (clientID == listaClienti[numarClienti - 1].clientID)
+        {
+            numarClienti--;
+            return;
+        }
+        for (int i = 1; i < numarClienti; i++)
+        {
+            if (clientID == listaClienti[i - 1].clientID)
+                startDelete = true;
+
+            if (startDelete)
+                listaClienti[i - 1] = listaClienti[i];
+        }
+
+        if (startDelete)
+            numarClienti --;
+        else
+            cout << "Nu am gasit clientul cu ID-ul " << clientID << endl;
+    }
+
+    static void stergeListaClientilor()
+    {
+        numarClienti = 0;
+        if (listaClienti != nullptr)
+            delete[] listaClienti;
+    }
+
+    /// SUPRAINCARCAREA OPERATORILOR
+    // Operatorul []
+    const char* operator[](int index) const
+    {
+        switch(index)
+        {
+        case 0:
+            return getNume();
+        case 1:
+            return getEmail();
+        default:
+            return "Index invalid";
+        }
+    }
+
+    // Operator ++ prefix (++client)
+    Client& operator++()
+    {
+        puncteFidelitate++;
+        return *this; /// Returneaza o referinta la obiectul curent, adica instanta pe care operatorul a fost apelat
+    }
+
+    // Operator ++ postfix (client++)
+    Client operator++(int) /// La sfarsit este un parametru dummy, folosit pentru a diferenta intre ++ prefix si postfix
+    {
+        Client temp = *this; /// Creeaza o copie a obiectului curent
+        puncteFidelitate++;
+        return temp; /// Returneaza copia obiectului curent
+    }
+
+    // Operator -- prefix (--client)
+    Client& operator--()
+    {
+        if (puncteFidelitate > 0)
+            puncteFidelitate--;
+        return *this;
+    }
